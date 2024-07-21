@@ -13,7 +13,11 @@ builder.Services.AddSingleton<WeatherForecastService>();
 builder.Services.AddHttpClient<WeatherForecastService>(client =>
 {
     var config = builder.Configuration;
-    client.BaseAddress = new Uri(config.GetValue<string>("ApiUrl")!);
+    client.BaseAddress = new Uri(
+        Environment.GetEnvironmentVariable("APIUrl")
+            ?? config.GetValue<string>("APIUrl")
+            ?? "http://localhost:7017"
+    );
 });
 
 var app = builder.Build();
