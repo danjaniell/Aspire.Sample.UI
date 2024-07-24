@@ -2,6 +2,9 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
+using OpenTelemetry;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
 using Weather.UI.Data;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,6 +22,31 @@ builder.Services.AddHttpClient<WeatherForecastService>(client =>
             ?? "http://localhost:7017"
     );
 });
+
+builder
+    .Services.AddOpenTelemetry()
+    .WithMetrics(metrics =>
+    {
+        metrics
+            .AddRuntimeInstrumentation()
+            .AddMeter(
+                "Microsoft.AspNetCore.Hosting",
+                "Microsoft.AspNetCore.Server.Kestrel",
+                "System.Net.Http"
+            );
+    })
+    .WithTracing(tracing =>
+    {
+        tracing.AddAspNetCoreInstrumentation().AddHttpClientInstrumentation();
+    });
+
+var useOtlpExporter = !string.IsNullOrWhiteSpace(
+    builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]
+);
+if (useOtlpExporter)
+{
+    builder.Services.AddOpenTelemetry().UseOtlpExporter();
+}
 
 var app = builder.Build();
 
